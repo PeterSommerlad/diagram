@@ -14,6 +14,11 @@ License:   MIT – see LICENSE file for details
 -- Module pandoc.system is required and was added in version 2.7.3
 PANDOC_VERSION:must_be_at_least '3.0'
 
+-- Version 3.1.2 reports Lua warnings via pandoc's reporting system.
+if PANDOC_VERSION < '3.1.2' then
+  warn '@on'
+end
+
 local system = require 'pandoc.system'
 local utils = require 'pandoc.utils'
 local stringify = utils.stringify
@@ -112,6 +117,21 @@ local function graphviz(code)
 end
 
 --
+-- Mermaid
+--
+local function mermaid (code)
+  return with_temporary_directory("diagram", function (tmpdir)
+    return with_working_directory(tmpdir, function ()
+      local infile = 'diagram.mmd'
+      local outfile = 'diagram.svg'
+      write_file(infile, code)
+      pandoc.pipe(path['mmdc'], {'--input', infile, '--output', outfile}, '')
+      return read_file(outfile), 'image/svg+xml'
+    end)
+  end)
+end
+
+--
 -- TikZ
 --
 
@@ -205,6 +225,7 @@ local diagram_engines = setmetatable(
     asymptote = {asymptote, '%%'},
     dot       = {graphviz, '//'},
     graphviz  = {graphviz, '//'},
+    mermaid   = {mermaid, '%%'},
     plantuml  = {plantuml, "'"},
     tikz      = {tikz, '%%'},
   },
